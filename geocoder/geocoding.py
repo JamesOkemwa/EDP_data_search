@@ -1,8 +1,9 @@
 from typing import Optional, Dict, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import logging
+
 
 @dataclass
 class BoundingBox:
@@ -12,14 +13,18 @@ class BoundingBox:
     east: float
     west: float
 
+    def __post_init__(self):
+        """Validate the bounding box coordinates"""
+        if not (-90 <= self.north <= 90 and -90 <= self.south <= 90):
+            raise ValueError("Latitude must be between -90 and 90 degrees.")
+        if not (-180 <= self.east <= 180 and -180 <= self.west <= 180):
+            raise ValueError("Longitude must be between -180 and 180 degrees.")
+        if self.south > self.north:
+            raise ValueError("South latitude must be less than North latitude.")
+
     def to_dict(self) -> Dict[str, float]:
         """Convert the bounding box to a dictionary"""
-        return {
-            "north": self.north,
-            "south": self.south,
-            "east": self.east,
-            "west": self.west
-        }
+        return asdict(self)
     
 
 class GeocodingService:
