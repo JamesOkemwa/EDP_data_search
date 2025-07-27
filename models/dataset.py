@@ -10,6 +10,7 @@ class Dataset:
     keywords: List[str]
     access_urls: List[str]
     download_urls: List[str]
+    spatial_extent: Optional[str] = None # WKT representation of the spatial extent
 
     @property
     def primary_title(self) -> Optional[str]:
@@ -18,6 +19,13 @@ class Dataset:
         Returns the first title or None if no titles exist.
         """
         return self.titles[0] if self.titles else None
+    
+    @property
+    def spatial_extent_wkt(self) -> Optional[str]:
+        """
+        Returns the spatial extent in WKT format if available or None if not set.
+        """
+        return self.spatial_extent if self.spatial_extent else None
     
     def to_content(self) -> str:
         """
@@ -43,5 +51,3 @@ class Dataset:
             "title": self.primary_title,
             "keywords": self.keywords
         }
-
-        
