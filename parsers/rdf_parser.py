@@ -1,6 +1,7 @@
-from typing import List
-from rdflib import Graph, Namespace, RDF
+from typing import List, Optional
+from rdflib import Graph, Namespace, RDF, Literal
 from models.dataset import Dataset
+import logging
 
 
 class RDFParser:
@@ -10,6 +11,9 @@ class RDFParser:
         self.dcat = Namespace("http://www.w3.org/ns/dcat#")
         self.dct = Namespace("http://purl.org/dc/terms/")
         self.foaf = Namespace("http://xmlns.com/foaf/0.1/")
+        self.locn = Namespace("http://www.w3.org/ns/locn#")
+        self.geosparql = Namespace("http://www.opengis.net/ont/geosparql#")
+        self.logger = logging.getLogger(__name__)
 
     def parse_file(self, file_path: str) -> List[Dataset]:
         """
@@ -54,7 +58,7 @@ class RDFParser:
         dataset_id = [(str(id) if id else None) for id in graph.objects(dataset_uri, self.dct.identifier)][0]
 
         access_urls, download_urls = self._extract_distribution_urls(graph, dataset_uri)
-
+        spatial_extent = self._extract_spatial_extent(graph, dataset_uri)
 
         return Dataset(
             titles=titles,
@@ -62,7 +66,8 @@ class RDFParser:
             keywords=keywords,
             access_urls=access_urls,
             download_urls=download_urls,
-            dataset_id=dataset_id
+            dataset_id=dataset_id,
+            spatial_extent=spatial_extent
         )
     
     def _extract_distribution_urls(self, graph: Graph, dataset_uri) -> tuple[List[str], List[str]]:
@@ -79,3 +84,28 @@ class RDFParser:
             download_urls.extend([str(url) for url in graph.objects(distribution, self.dcat.downloadURL)])
 
         return access_urls, download_urls
+    
+    def _extract_spatial_extent(self, graph: Graph, dataset_uri) -> str:
+        """
+        Extracts the spatial extent of the dataset in WKT format.
+
+        This method looks for dct:spatial -> dct:Location -> locn:geometry and filters for WKT literal datatypes.
+
+        Returns:
+            WKT string if found, otherwise None.
+        """
+
+        try:
+            # find all spatial properties of the dataset
+            spatial_objects = list(graph.objects(dataset_uri, self.dct.spatial))
+
+            for spatial_obj in spatial_objects:
+                for geometry_obj in list(graph.objects(spatial_obj, self.locn.geometry)):
+                    if isinstance(geometry_obj, Literal):
+                    # Check for specific WKT datatype
+                        if (geometry_obj.datatype and str(geometry_obj.datatype) == "http://www.opengis.net/ont/geosparql#wktLiteral"):
+                            return str(geometry_obj)
+            return None
+        except Exception as e:
+            self.logger.warning(f"Error extracting spatial extent for {dataset_uri}: {e}")
+            return None
