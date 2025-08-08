@@ -73,3 +73,29 @@ class PostGISService:
         
         finally:
             cur.close()
+
+    def insert_dataset(self, dataset:Dataset) -> bool:
+        """Insert a single dataset into the database"""
+
+        if not self.connection:
+            raise ValueError("No database connection established")
+        
+        if not dataset.spatial_extent_wkt:
+            return False
+        
+        cur = self.connection.cursor()
+
+        try:
+            cur.execute("""
+                INSERT INTO dcat_metadata (dataset_id, title, geom)
+                VALUES (%s, %s, ST_GeomFromText(%s, 4326))
+                ON CONFLICT (dataset_id) DO NOTHING;
+            """, (dataset.dataset_id, dataset.primary_title, dataset.spatial_extent_wkt))
+
+            return True
+        
+        except Exception as e:
+            self.logger.error("Failed to insert dataset: {dataset.dataset_id}: {e}")
+            return False
+        finally:
+            cur.close
