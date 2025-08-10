@@ -1,3 +1,3 @@
-from .geocoding import GeocodingService
+from .geocoding import GeocodingService, BoundingBox
 
-__all__ = ['GeocodingService']
+__all__ = ['GeocodingService', 'BoundingBox']
