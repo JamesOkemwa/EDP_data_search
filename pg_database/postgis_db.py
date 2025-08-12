@@ -1,9 +1,9 @@
 import os
 import psycopg2
-from typing import List, Optional
+from typing import List
 from dotenv import load_dotenv
-from ..parsers.rdf_parser import RDFParser
-from ..models.dataset import Dataset
+from models.dataset import Dataset
+from geocoder.geocoding import BoundingBox
 import logging
 
 
@@ -15,7 +15,7 @@ class PostGISService:
         self.user = os.getenv("POSTGRES_USER", "postgres")
         self.password = os.getenv("POSTGRES_PASSWORD", "postgres")
         self.host = os.getenv("POSTGRES_HOST", "localhost")
-        self.port = os.getenv("POSTGRES_PORT", "5432")
+        self.port = int(os.getenv("POSTGRES_PORT", "5432"))
         self.database = os.getenv("POSTGRES_DB", "spatial_data_search")
         self.logger = logging.getLogger(__name__)
         self.connection = None
@@ -30,6 +30,7 @@ class PostGISService:
                 port=self.port,
                 database=self.database
             )
+            self.connection.autocommit = False
             self.logger.info("Connected to PostGIS database successfully.")
         except Exception as e:
             self.logger.error(f"Failed to connect to PostGIS database: {e}")
@@ -38,41 +39,41 @@ class PostGISService:
     def disconnect(self):
         """Close database connection."""
         if self.connection:
-            self.connection.close()
-            self.logger.info("Disconnected from PostGIS database.")
+            try:
+                self.connection.close()
+                self.connection = None
+                self.logger.info("Disconnected from PostGIS database.")
+            except Exception as e:
+                self.logger.warning(f"Error disconnecting from database: {e}")
 
     def initialize_schema(self):
         """Create the necessary tables and indexes."""
         if not self.connection:
             raise ValueError("No database connection established.")
-        
-        cur = self.connection.cursor()
 
         try:
-            # create table
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS dcat_metadata (
-                    dataset_id UUID PRIMARY KEY,
-                    title TEXT,
-                    geom geometry(Polygon,4326)
-                );
-            """)
+            with self.connection.cursor() as cur:
+                # create table
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS dcat_metadata (
+                        dataset_id UUID PRIMARY KEY,
+                        title TEXT,
+                        geom geometry(Polygon,4326)
+                    );
+                """)
 
-            # create spatial index
-            cur.execute("""
-                CREATE INDEX IF NOT EXISTS idx_dcat_metadata_geom ON dcat_metadata USING GIST (geom);
-            """)
+                # create spatial index
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_dcat_metadata_geom ON dcat_metadata USING GIST (geom);
+                """)
 
-            self.connection.commit()
-            self.logger.info("Database schema initialized successfully.")
+                self.connection.commit()
+                self.logger.info("Database schema initialized successfully.")
 
         except Exception as e:
             self.connection.rollback()
             self.logger.error(f"Failed to initialized database schema: {e}")
             raise
-        
-        finally:
-            cur.close()
 
     def insert_dataset(self, dataset:Dataset) -> bool:
         """Insert a single dataset into the database"""
@@ -82,20 +83,52 @@ class PostGISService:
         
         if not dataset.spatial_extent_wkt:
             return False
-        
-        cur = self.connection.cursor()
 
         try:
-            cur.execute("""
-                INSERT INTO dcat_metadata (dataset_id, title, geom)
-                VALUES (%s, %s, ST_GeomFromText(%s, 4326))
-                ON CONFLICT (dataset_id) DO NOTHING;
-            """, (dataset.dataset_id, dataset.primary_title, dataset.spatial_extent_wkt))
+            with self.connection.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO dcat_metadata (dataset_id, title, geom)
+                    VALUES (%s, %s, ST_GeomFromText(%s, 4326))
+                    ON CONFLICT (dataset_id) DO NOTHING;
+                """, (dataset.dataset_id, dataset.primary_title, dataset.spatial_extent_wkt))
 
-            return True
+                self.connection.commit()
+                return True
         
         except Exception as e:
-            self.logger.error("Failed to insert dataset: {dataset.dataset_id}: {e}")
+            self.connection.rollback()
+            self.logger.error(f"Failed to insert dataset {dataset.dataset_id}: {e}")
             return False
-        finally:
-            cur.close
+
+    def find_datasets_by_bbox(self, bbox: BoundingBox) -> List[dict]:
+        """Find all datasets that intersect with a boundingbox"""
+
+        if not self.connection:
+            raise ValueError("No database connection established")
+        
+        cur = self.connection.cursor()
+        
+        try:
+            with self.connection.cursor() as cur:
+                cur.execute("""
+                    SELECT dataset_id, title
+                    FROM dcat_metadata
+                    WHERE ST_Intersects(
+                        geom,
+                        ST_MakeEnvelope(%s, %s, %s, %s, 4326)
+                    );
+                """, (bbox.west, bbox.south, bbox.east, bbox.north))
+
+                results = []
+                for row in cur.fetchall():
+                    results.append({
+                        'dataset_id': row[0],
+                        'title': row[1]
+                    })
+                
+                self.logger.info(f"Found {len(results)} datasets intersecting with bbox")
+                return results
+        
+        except Exception as e:
+            self.logger.error(f"Failed to query datasets by bbox: {e}")
+            return []
