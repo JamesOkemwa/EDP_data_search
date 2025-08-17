@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
@@ -35,6 +35,29 @@ class QueryIntent(BaseModel):
         if not v or not v.strip():
             raise ValueError("raw_theme cannot be empty")
         return v.strip()
+
+    @property
+    def has_location(self) -> bool:
+        """Check if the query contains location mentions"""
+        return len(self.locations) > 0
+    
+    @property
+    def core_search_terms(self) -> List[str]:
+        """Get core search terms combining raw_theme and themes."""
+        terms = [self.raw_theme]
+        terms.extend(self.themes)
+        return [term.strip() for term in terms if term.strip()]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization"""
+        return {
+            "raw_theme": self.raw_theme,
+            "locations": self.locations,
+            "themes": self.themes,
+            "publishers": self.publishers,
+            "has_location": self.has_location,
+            "core_search_terms": self.core_search_terms
+        }
     
 
 class QueryParser:
