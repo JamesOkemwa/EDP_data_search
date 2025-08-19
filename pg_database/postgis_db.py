@@ -100,7 +100,7 @@ class PostGISService:
             self.logger.error(f"Failed to insert dataset {dataset.dataset_id}: {e}")
             return False
 
-    def find_datasets_by_bbox(self, bbox: BoundingBox) -> List[dict]:
+    def find_dataset_ids_by_bbox(self, bbox: BoundingBox) -> List[dict]:
         """Find all datasets that intersect with a boundingbox"""
 
         if not self.connection:
@@ -111,7 +111,7 @@ class PostGISService:
         try:
             with self.connection.cursor() as cur:
                 cur.execute("""
-                    SELECT dataset_id, title
+                    SELECT dataset_id
                     FROM dcat_metadata
                     WHERE ST_Intersects(
                         geom,
@@ -121,10 +121,7 @@ class PostGISService:
 
                 results = []
                 for row in cur.fetchall():
-                    results.append({
-                        'dataset_id': row[0],
-                        'title': row[1]
-                    })
+                    results.append(row[0])
                 
                 self.logger.info(f"Found {len(results)} datasets intersecting with bbox")
                 return results

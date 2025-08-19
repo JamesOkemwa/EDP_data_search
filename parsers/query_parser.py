@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
@@ -35,18 +35,44 @@ class QueryIntent(BaseModel):
         if not v or not v.strip():
             raise ValueError("raw_theme cannot be empty")
         return v.strip()
+
+    @property
+    def has_location(self) -> bool:
+        """Check if the query contains location mentions"""
+        return len(self.locations) > 0
+    
+    @property
+    def core_search_terms(self) -> List[str]:
+        """Get core search terms combining raw_theme and themes."""
+        terms = [self.raw_theme]
+        terms.extend(self.themes)
+        return [term.strip() for term in terms if term.strip()]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for serialization"""
+        return {
+            "raw_theme": self.raw_theme,
+            "locations": self.locations,
+            "themes": self.themes,
+            "publishers": self.publishers,
+            "has_location": self.has_location,
+            "core_search_terms": self.core_search_terms
+        }
     
 
 class QueryParser:
     """ Parser for extracting structured query intent from natural language queries."""
 
-    SYSTEM_PROMPT = "You are a geospatial query specialist"
+    SYSTEM_PROMPT = """You are a geospatial query specialist that helps users find spatial datasets. 
+    You excel at understanding what users are looking for in terms of geographic locations, data themes, and publishers."""
+
     USER_PROMPT = """
     Your task is to extract from this dataset search query:
-        1. raw_theme: Raw theme or core search theme (exact user wording)
-        2. locations: Place names for that will be used later for geocoding. A location can be a town, city, country or region which can be geocoded using a geocoding API.
-        3. themes: Main themes, keywords and topics that are relevant to the query. Where possible, add two themes that match the user query
-        4. publishers: Organizations or data publishers mentioned
+        1. raw_theme: Raw theme or core search phrase (exact user wording for the main topic)
+        2. locations: Place names that will be used for geocoding. Include cities, countries, regions - anything that can be geocoded.
+        3. themes: Main themes, keywords and topics relevant to the query. Include data types (traffic, weather, population) and domains (transportation, environment).
+        4. publishers: Organizations, agencies, or data publishers mentioned (e.g., "city of Berlin", "European Space Agency")
+
     Format your response as a JSON that matches this pydantic schema:
     {format_instructions}
 
