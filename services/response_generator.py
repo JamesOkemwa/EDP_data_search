@@ -10,7 +10,7 @@ class ResponseGenerator:
     """Generates natural language responses using Langchain based on retrieved datasets."""
 
     def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3)
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
         self.logger = logging.getLogger(__name__)
 
         # response generation prompt
@@ -26,7 +26,6 @@ class ResponseGenerator:
 
              ("human", """User Query: {original_query}
               Retrieved Datasets: {datasets_info}
-              Search Context: {metadata}
               
               Please provide a helpful response that addresses the user's query and recommends relevant datasets.""")
         ])
@@ -34,14 +33,13 @@ class ResponseGenerator:
         # create the chain
         self.chain = self.prompt | self.llm | StrOutputParser()
 
-    def generate_response(self, original_query: str, search_results: List[SearchResult], metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_response(self, original_query: str, search_results: List[SearchResult]) -> Dict[str, Any]:
         """
         Generate a natural language response based on search results.
 
         Args:
             original query: User's original query
             search_results: List of SearchResult objects from vector search
-            metadata: Additional context about the search
 
         Returns:
             Dictionary with generated response and formatted datasets.
@@ -55,7 +53,6 @@ class ResponseGenerator:
             response_text = self.chain.invoke({
                 "original_query": original_query,
                 "datasets_info": datasets_info,
-                "metadata": str(metadata)
             })
 
             # format source datasets for the API response
