@@ -104,9 +104,9 @@ class QueryParser:
             raise ValueError("Query cannot be empty")
         
         try:
-            logger.info("Parsing query: {query}")
+            logger.info(f"Parsing query: {query}")
             result = self.chain.invoke({"query": query, "format_instructions": self.parser.get_format_instructions()})
-            logger.info("Successfully parsed: {result.raw_theme}")
+            logger.info(f"Successfully parsed: {result}")
             return result
         except Exception as e:
             logger.error(f"Failed to parse query: {e}")
