@@ -32,7 +32,7 @@ class RAGOrchestrator:
             self.logger.error(f"Failed to initialize the RAG orchestrator: {e}")
             raise
 
-    def process_query(self, user_query: str, max_results: int=5) ->Dict[str, Any]:
+    def process_query(self, user_query: str, max_results: int=3) ->Dict[str, Any]:
         """
             Process user query through complete RAG pipeline
             Returns a dictionary with answer, datasets and metadata
@@ -89,14 +89,9 @@ class RAGOrchestrator:
         response = self.response_generator.generate_response(
             original_query=original_query,
             search_results=search_results,
-            metadata={
-                "spatial_datasets_found": len(dataset_ids)
-            }
         )
 
         return response
-        
-
 
     def _process_semantic_only_query(self, parsed_query: QueryIntent, original_query, max_results: int) -> Dict[str, Any]:
         """Process queries without specific location mentions"""
@@ -113,14 +108,6 @@ class RAGOrchestrator:
         response = self.response_generator.generate_response(
             original_query=original_query,
             search_results=search_results,
-            metadata={
-                "search_type": "semantic_only"
-            }
         )
 
         return response
-
-
-        
-
-        
