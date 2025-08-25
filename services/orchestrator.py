@@ -4,6 +4,7 @@ from parsers.query_parser import QueryParser, QueryIntent
 from services.retrieval_service import DatasetRetrievalService, SearchResult
 from geocoder.geocoding import GeocodingService, BoundingBox
 from pg_database.postgis_db import PostGISService
+from services.response_generator import ResponseGenerator
 
 
 class RAGOrchestrator:
@@ -16,6 +17,7 @@ class RAGOrchestrator:
         self.query_parser = QueryParser()
         self.geocoder = GeocodingService()
         self.retrieval_service = DatasetRetrievalService()
+        self.response_generator = ResponseGenerator()
         self.postgis_service = None
 
     def initialize(self):
@@ -27,7 +29,7 @@ class RAGOrchestrator:
 
             self.logger.info("RAG Orchestrator initialized successfully")
         except Exception as e:
-            self.logger.error(f"Failed to initlaize the RAG orchestrator: {e}")
+            self.logger.error(f"Failed to initialize the RAG orchestrator: {e}")
             raise
 
     def process_query(self, user_query: str, max_results: int=5) ->Dict[str, Any]:
@@ -42,9 +44,9 @@ class RAGOrchestrator:
 
             # step 2 - Route the query based on whether a location is mentioned
             if parsed_query.has_location:
-                result = self._process_location_based_query(parsed_query, max_results)
+                result = self._process_location_based_query(parsed_query, user_query, max_results)
             else:
-                result = self._process_semantic_only_query(parsed_query, max_results)
+                result = self._process_semantic_only_query(parsed_query, user_query, max_results)
             
             return result
         
@@ -55,7 +57,7 @@ class RAGOrchestrator:
                 "source_datasets": []
             }
         
-    def _process_location_based_query(self, parsed_query: QueryIntent, max_results: int) -> Dict[str, Any]:
+    def _process_location_based_query(self, parsed_query: QueryIntent, original_query, max_results: int) -> Dict[str, Any]:
         """Process queries that mention specific locations"""
         self.logger.info("Processing location-based query")
 
@@ -65,14 +67,14 @@ class RAGOrchestrator:
 
         if not bounding_box:
             self.logger.warning("No valid bounding box found, falling back to semantic search")
-            return self._process_semantic_only_query(parsed_query, max_results)
+            return self._process_semantic_only_query(parsed_query, original_query, max_results)
         
         # query postgis for datasets intersecting with the bounding box
         dataset_ids = self.postgis_service.find_dataset_ids_by_bbox(bounding_box)
 
         if len(dataset_ids) == 0:
             self.logger.info("No spatial datasets found, falling back to semantic search")
-            return self._process_semantic_only_query(parsed_query, max_results)
+            return self._process_semantic_only_query(parsed_query, original_query, max_results)
         
         # perform filtered semantic search
         search_query = " ".join(parsed_query.core_search_terms)
@@ -82,12 +84,41 @@ class RAGOrchestrator:
             max_results=max_results,
             include_scores=True
         )
+
+        # generate response
+        response = self.response_generator.generate_response(
+            original_query=original_query,
+            search_results=search_results,
+            metadata={
+                "spatial_datasets_found": len(dataset_ids)
+            }
+        )
+
+        return response
         
 
 
-    def _process_semantic_only_query(self, parsed_query: QueryIntent, max_results: int) -> Dict[str, Any]:
+    def _process_semantic_only_query(self, parsed_query: QueryIntent, original_query, max_results: int) -> Dict[str, Any]:
         """Process queries without specific location mentions"""
+        self.logger.info("Processing semantic-only query")
 
+        search_query = " ".join(parsed_query.core_search_terms) if parsed_query.core_search_terms else original_query
+        search_results = self.retrieval_service.search_all_embeddings(
+            query=search_query,
+            max_results=max_results,
+            include_scores=True
+        )
+
+        # generate response
+        response = self.response_generator.generate_response(
+            original_query=original_query,
+            search_results=search_results,
+            metadata={
+                "search_type": "semantic_only"
+            }
+        )
+
+        return response
 
 
         
