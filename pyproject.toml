@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "dotenv>=0.9.9",
+    "fastapi>=0.116.1",
     "geopy>=2.4.1",
     "langchain>=0.3.26",
     "langchain-openai>=0.3.27",
@@ -14,4 +15,5 @@ dependencies = [
     "pydantic>=2.11.7",
     "qdrant-client>=1.14.3",
     "rdflib>=7.1.4",
+    "uvicorn>=0.35.0",
 ]
