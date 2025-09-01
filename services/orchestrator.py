@@ -35,7 +35,7 @@ class RAGOrchestrator:
     def process_query(self, user_query: str, max_results: int=3) ->Dict[str, Any]:
         """
             Process user query through complete RAG pipeline
-            Returns a dictionary with answer, datasets and metadata
+            Returns a dictionary with answer and the retrived datasets
         """
         try:
             # step 1 - Parse the query using the query parser
@@ -66,15 +66,27 @@ class RAGOrchestrator:
         bounding_box = self.geocoder.get_bounding_box(location)
 
         if not bounding_box:
-            self.logger.warning("No valid bounding box found, falling back to semantic search")
-            return self._process_semantic_only_query(parsed_query, original_query, max_results)
+            self.logger.warning("No valid bounding box found")
+
+            # generate response
+            response = self.response_generator.generate_response(
+                original_query=original_query,
+                search_results=[],
+            )
+            return response
         
         # query postgis for datasets intersecting with the bounding box
         dataset_ids = self.postgis_service.find_dataset_ids_by_bbox(bounding_box)
 
         if len(dataset_ids) == 0:
-            self.logger.info("No spatial datasets found, falling back to semantic search")
-            return self._process_semantic_only_query(parsed_query, original_query, max_results)
+            self.logger.info("No datasets intersect with the query bounding box")
+
+            # generate response
+            response = self.response_generator.generate_response(
+                original_query=original_query,
+                search_results=[],
+            )
+            return response
         
         # perform filtered semantic search
         search_query = " ".join(parsed_query.core_search_terms)
