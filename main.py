@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, List
 from contextlib import asynccontextmanager
@@ -37,6 +38,15 @@ app = FastAPI(
         description='Natural language search for spatial datasets using RAG',
         lifespan=lifespan
     )
+
+# configure cors middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501/"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/search", response_model=QueryResponse)
 def search_datasets(request: QueryRequest):
