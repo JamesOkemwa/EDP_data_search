@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, Any, Optional
 import logging
 from parsers.query_parser import QueryParser, QueryIntent
@@ -19,6 +20,7 @@ class RAGOrchestrator:
         self.retrieval_service = DatasetRetrievalService()
         self.response_generator = ResponseGenerator()
         self.postgis_service = None
+        self.min_score = float(os.getenv("THRESHOLD_MIN_SCORE"))
 
     def initialize(self):
         """Initialize all services"""
@@ -94,7 +96,7 @@ class RAGOrchestrator:
             query=search_query,
             dataset_ids=dataset_ids,
             max_results=max_results,
-            include_scores=True
+            min_score=self.min_score
         )
 
         # generate response
@@ -113,7 +115,7 @@ class RAGOrchestrator:
         search_results = self.retrieval_service.search_all_embeddings(
             query=search_query,
             max_results=max_results,
-            include_scores=True
+            min_score=self.min_score
         )
 
         # generate response
