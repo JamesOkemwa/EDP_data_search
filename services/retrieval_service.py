@@ -47,67 +47,51 @@ class DatasetRetrievalService:
             self._initialized = True
             self.logger.info("DatasetRetrievalService initialized successfully.")
 
-    def search_by_dataset_ids(self, query: str, dataset_ids: List[str], max_results: int = 5, include_scores: bool = False) -> List[SearchResult]:
+    def search_by_dataset_ids(self, query: str, dataset_ids: List[str], max_results: int = 10, min_score: float = 0.0) -> List[SearchResult]:
 
         """Perfom semantic similarity search limited to specific vector embeddings by their dataset_ids"""
         if not self._initialized:
                 self.initialize()
 
         filter_criteria = self._build_dataset_id_filter(dataset_ids)
-        self.logger.info("Searching vector store with dataset IDs...")
+        self.logger.info(f"Searching vector store with dataset IDs, min_score: {min_score}")
 
         try:
-            if include_scores:
-                documents_with_scores = self.vector_store_manager.similarity_search_with_score(
-                    query=query,
-                    k=max_results,
-                    filter_criteria=filter_criteria
-                )
+            documents_with_scores = self.vector_store_manager.similarity_search_with_score(
+                query=query,
+                k=max_results,
+                filter_criteria=filter_criteria
+            )
 
-                return [
-                    SearchResult.from_documents(doc, score)
-                    for doc, score in documents_with_scores
-                ]
-            else:
-                documents = self.vector_store_manager.similarity_search(
-                    query=query,
-                    k=max_results,
-                    filter_criteria=filter_criteria
-                )
-
-                return [SearchResult.from_documents(doc) for doc in documents]
+            return [
+                SearchResult.from_documents(doc, score)
+                for doc, score in documents_with_scores
+                if score >= min_score
+            ]
             
         except Exception as e:
             self.logger.error(f"Error during search: {e}")
             return []
 
-    def search_all_embeddings(self, query: str, max_results: int = 5, include_scores: bool = False) -> List[SearchResult]:
+    def search_all_embeddings(self, query: str, max_results: int = 5, min_score: float = 0.0) -> List[SearchResult]:
         """Perform semantic similarity search across all vector embeddings: no filtering"""
 
         if not self._initialized:
             self.initialize()
 
-        self.logger.info("Searching all embeddings for query.")
+        self.logger.info(f"Searching all embeddings with min_score: {min_score}")
 
         try:
-            if include_scores:
-                documents_with_scores = self.vector_store_manager.similarity_search_with_score(
-                    query=query,
-                    k=max_results
-                )
-                return [
-                    SearchResult.from_documents(doc, score)
-                    for doc, score in documents_with_scores
-                ]
-
-            else:
-                documents = self.vector_store_manager.similarity_search(
-                    query=query,
-                    k=max_results
-                )
-                return [
-                    SearchResult.from_documents(doc) for doc in documents
-                ]
+            documents_with_scores = self.vector_store_manager.similarity_search_with_score(
+                query=query,
+                k=max_results
+            )
+            return [
+                SearchResult.from_documents(doc, score)
+                for doc, score in documents_with_scores
+                if score >= min_score
+            ]
+           
         except Exception as e:
             self.logger.error(f"Error during search: {e}")
             return []
