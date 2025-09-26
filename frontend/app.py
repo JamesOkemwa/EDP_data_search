@@ -15,6 +15,28 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+    # Display datasets from the API response - only for assitant messages
+    if message["role"] == "assistant" and "datasets" in message:
+        st.subheader("📊 Found Datasets")
+        # display each dataset information using a streamlit expander component
+        for i, dataset in enumerate(message["datasets"], 1):
+            with st.expander(f"Dataset {i}: {dataset.get('dataset_id', 'Unknown ID')}"):
+                if dataset.get('content'):
+                    st.write('**Description**')
+                    st.write(dataset['content'])
+                
+                if dataset.get('metadata'):
+                    metadata = dataset['metadata']
+
+                    if metadata.get('title'):
+                        st.write(f'**Title**: {metadata['title']}')
+
+                    if metadata.get('keywords'):
+                        st.write('**Keywords:**')
+                        st.write(", ".join(metadata['keywords']))
+    else:
+        st.info("No datasets found for this query")
+
 # accept user prompt
 if prompt := st.chat_input("What data are you looking for?"):
     #add user message to chat history
@@ -39,9 +61,32 @@ if prompt := st.chat_input("What data are you looking for?"):
             with st.chat_message("assistant"):
                 st.markdown(result["answer"])
 
+                # display results using streamlit expander
+                if result.get("source_datasets"):
+                    st.subheader("📊 Found Datasets")
+
+                    for i, dataset in enumerate(result['source_datasets'], 1):
+                        with st.expander(f"Dataset {i}: {dataset.get('dataset_id', 'Unknown ID')}"):
+                            if dataset.get('content'):
+                                st.write('**Description**')
+                                st.write(dataset['content'])
+                            
+                            if dataset.get('metadata'):
+                                metadata = dataset['metadata']
+
+                                if metadata.get('title'):
+                                    st.write(f'**Title**: {metadata['title']}')
+
+                                if metadata.get('keywords'):
+                                    st.write('**Keywords:**')
+                                    st.write(", ".join(metadata['keywords']))
+                else:
+                    st.info("No datasets found for this query")
+
             st.session_state.messages.append({
                 "role": "assistant",
-                "content": result["answer"]
+                "content": result["answer"],
+                "datasets": result.get("source_datasets", [])
             })
         else:
             st.error(f"API Error: {response.status_code} - {response.text}")
