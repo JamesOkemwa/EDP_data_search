@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 import json
+import folium
+from streamlit_folium import st_folium
 
 API_URL = 'http://localhost:8000/search'
 
@@ -23,6 +25,10 @@ def render_datasets(datasets):
                     if metadata.get("keywords"):
                         st.write("**Keywords:**")
                         st.write(", ".join(metadata["keywords"]))
+
+                # create a map that shows the dataset's extent
+                m = folium.Map(location=[51.9607, 7.62], zoom_start=14)
+                st_folium(m, width=725, returned_objects=[], key=f"map-{i}")
     else:
         st.info("No datasets found for this query")
 
