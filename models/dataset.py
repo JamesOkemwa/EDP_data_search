@@ -21,6 +21,13 @@ class Dataset:
         return self.titles[0] if self.titles else None
     
     @property
+    def primary_description(self) -> Optional[str]:
+        """
+        Returns the first title is the dataset contains multiple titles in different languages
+        """
+        return self.descriptions[0] if self.descriptions else None
+    
+    @property
     def spatial_extent_wkt(self) -> Optional[str]:
         """
         Returns the spatial extent in WKT format if available or None if not set.
@@ -49,5 +56,9 @@ class Dataset:
         return {
             "dataset_id": self.dataset_id,
             "title": self.primary_title,
-            "keywords": self.keywords
+            "description": self.primary_description,
+            "keywords": self.keywords,
+            "spatial_extent": self.spatial_extent_wkt,
+            "access_urls": self.access_urls,
+            "download_urls": self.download_urls
         }

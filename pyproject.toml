@@ -17,5 +17,6 @@ dependencies = [
     "rdflib>=7.1.4",
     "requests>=2.32.4",
     "streamlit>=1.49.1",
+    "streamlit-folium>=0.25.3",
     "uvicorn>=0.35.0",
 ]

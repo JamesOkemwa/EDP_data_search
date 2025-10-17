@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 import json
+import folium
+from streamlit_folium import st_folium
 
 API_URL = 'http://localhost:8000/search'
 
@@ -11,18 +13,23 @@ def render_datasets(datasets):
     if datasets:
         st.subheader("📊 Found Datasets")
         for i, dataset in enumerate(datasets, 1):
-            with st.expander(f"Dataset {i}: {dataset.get('dataset_id', 'Unknown ID')}"):
-                if dataset.get("content"):
-                    st.write("**Description**")
-                    st.write(dataset["content"])
-
-                if dataset.get("metadata"):
-                    metadata = dataset["metadata"]
+            if dataset.get('metadata'):
+                metadata = dataset["metadata"]
+                with st.expander(metadata.get("title", "Unknown Title")):
                     if metadata.get("title"):
                         st.write(f"**Title**: {metadata['title']}")
+                    if metadata.get('description'):
+                        st.write(f"**Description**: {metadata['description']}")
                     if metadata.get("keywords"):
                         st.write("**Keywords:**")
                         st.write(", ".join(metadata["keywords"]))
+                    if metadata.get("access_urls"):
+                        st.write("**Access URLs:**")
+                        st.write("\n".join(metadata["access_urls"]))
+
+                    # create a map that shows the dataset's extent
+                    m = folium.Map(location=[51.9607, 7.62], zoom_start=14)
+                    st_folium(m, width=725, returned_objects=[], key=f"map-{i}-{dataset.get('dataset_id', 'Unknown')}")
     else:
         st.info("No datasets found for this query")
 
