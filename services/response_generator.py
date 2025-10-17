@@ -88,7 +88,6 @@ class ResponseGenerator:
         for result in search_results:
             dataset_info = {
                 "dataset_id": result.dataset_id,
-                "content": result.content,
                 "relevance_score": result.score,
                 "metadata": result.metadata
             }
