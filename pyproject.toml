@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.116.1",
+    "folium>=0.20.0",
     "geopy>=2.4.1",
     "langchain>=0.3.26",
     "langchain-openai>=0.3.27",
@@ -16,6 +17,7 @@ dependencies = [
     "qdrant-client>=1.14.3",
     "rdflib>=7.1.4",
     "requests>=2.32.4",
+    "shapely>=2.1.2",
     "streamlit>=1.49.1",
     "streamlit-folium>=0.25.3",
     "uvicorn>=0.35.0",
