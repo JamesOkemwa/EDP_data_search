@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
-import json
 import folium
 from streamlit_folium import st_folium
+from shapely import wkt
 
 API_URL = 'http://localhost:8000/search'
 
@@ -29,7 +29,31 @@ def render_datasets(datasets):
 
                     # create a map that shows the dataset's extent
                     m = folium.Map(location=[51.9607, 7.62], zoom_start=14)
-                    st_folium(m, width=725, returned_objects=[], key=f"map-{i}-{dataset.get('dataset_id', 'Unknown')}")
+
+                    extent_wkt = metadata.get("spatial_extent")
+                    if extent_wkt:
+                        try:
+                            geom = wkt.loads(extent_wkt)
+                            if geom.geom_type == 'Polygon':
+                                geojson_data = folium.GeoJson(
+                                    data=geom.__geo_interface__,
+                                    style_function=lambda x: {
+                                        "color": "blue",
+                                        "fillColor": "blue",
+                                        "fillOpacity": 0.2,
+                                        "weight": 2
+                                    }
+                                )
+                                geojson_data.add_to(m)
+
+                                # Zoom to the bounds of the polygon
+                                minx, miny, maxx, maxy = geom.bounds
+                                m.fit_bounds([[miny, minx], [maxy, maxx]])
+                                
+                        except Exception as e:
+                            st.warning(f"Could not parse the spatial extent: {e}")
+                             
+                    st_folium(m, width=725, returned_objects=[], key=f"map-{i}-{dataset.get('dataset_id', str(i))}")
     else:
         st.info("No datasets found for this query")
 
