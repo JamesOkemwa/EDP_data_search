@@ -99,6 +99,48 @@ class PostGISService:
             self.connection.rollback()
             self.logger.error(f"Failed to insert dataset {dataset.dataset_id}: {e}")
             return False
+        
+    def insert_datasets(self, datasets: List[Dataset]) -> int:
+        """
+        Instert multiple datasets into the database.
+
+        Returns the number of datasets inserted
+        """
+        if not self.connection:
+            raise ValueError("No database connection established")
+        
+        inserted_count = 0
+
+        try:
+            with self.connection.cursor() as cur:
+                for dataset in datasets:
+                    # skip datasets without spatial extent
+                    if not dataset.spatial_extent_wkt:
+                        self.logger.debug(f"Skipping dataset {dataset.dataset_id}: no spatial extent")
+                        continue
+
+                    try:
+                        cur.execute("""
+                        INSERT INTO dcat_metadata (dataset_id, title, geom)
+                        VALUES (%s, %s, ST_GeomFromText(%s, 4326))
+                        ON CONFLICT (dataset_id) DO NOTHING;
+                        """, (dataset.dataset_id, dataset.primary_title, dataset.spatial_extent_wkt))
+
+                        inserted_count += 1
+
+                    except Exception as e:
+                        self.logger.warning(f"Failed to insert dataset {dataset.dataset_id}: {e}")
+                        continue
+                # commit all insertions at once
+                self.connection.commit()
+                self.logger.info(f"Successfully inserted {inserted_count}/{len(datasets)} datasets")
+
+        except Exception as e:
+            self.connection.rollback()
+            self.logger.error(f"Error duing batch insert: {e}")
+            raise
+
+        return inserted_count
 
     def find_dataset_ids_by_bbox(self, bbox: BoundingBox) -> List[dict]:
         """Find all datasets that intersect with a boundingbox"""
