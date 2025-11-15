@@ -56,7 +56,7 @@ class PostGISService:
                 # create table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS dcat_metadata (
-                        dataset_id UUID PRIMARY KEY,
+                        dataset_id TEXT PRIMARY KEY,
                         title TEXT,
                         geom geometry(Polygon,4326)
                     );
