@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, Dict, Any
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, models
@@ -6,15 +7,15 @@ from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 from models.dataset import Dataset
 
-load_dotenv()
 
 class QdrantVectorStoreManager:
     """Manages Qdrant vector store operations."""
 
-    def __init__(self, host: str = "localhost", port: int = 6333, collection_name: str = "dcat_collection"):
-        self.host = host
-        self.port = port
-        self.collection_name = collection_name
+    def __init__(self):
+        load_dotenv()
+        self.host = os.getenv("QDRANT_HOST")
+        self.port = int(os.getenv("QDRANT_PORT"))
+        self.collection_name = os.getenv("COLLECTION_NAME")
         self.client = None
         self.vector_store = None
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-large")

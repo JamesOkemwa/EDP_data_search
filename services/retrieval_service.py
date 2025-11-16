@@ -33,11 +33,7 @@ class DatasetRetrievalService:
         load_dotenv()
         self.logger = logging.getLogger(__name__)
 
-        self.vector_store_manager = QdrantVectorStoreManager(
-            host=os.getenv("QDRANT_HOST"),
-            port=int(os.getenv("QDRANT_PORT")),
-            collection_name=os.getenv("COLLECTION_NAME")
-        )
+        self.vector_store_manager = QdrantVectorStoreManager()
         self._initialized = False
 
     def initialize(self):
