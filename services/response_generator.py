@@ -22,6 +22,7 @@ class ResponseGenerator:
              - Directly address the user's query.
              - Recommend the most relevant datasets.
              - Mention location context if applicable.
+             - Address the user in the language used in the query.
              - Be helpful and specific."""),
 
              ("human", """User Query: {original_query}
