@@ -11,6 +11,24 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgis_data:/var/lib/postgresql/data
+    networks:
+      - dcat-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: always
+    ports:
+      - "${QDRANT_PORT}:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - dcat-network
 
 volumes:
   postgis_data:
+  qdrant_data:
+
+networks:
+  dcat-network:
+    driver: bridge
