@@ -1,11 +1,13 @@
-## Script for harvesting metadata from the data.europa.eu platform and populating the vector and spatial index
+## Script for harvesting metadata from the local DCAT metadata XML file and the data.europa.eu platform and populating the vector and spatial index
 ## Run it only once when initializing the application
 
 import logging
 import requests
+from typing import List
 from rdflib import Graph, Namespace, URIRef, Literal, RDF
 
 from models.dataset import Dataset
+from parsers.rdf_parser import RDFParser
 from vector_stores.qdrant_store import QdrantVectorStoreManager
 from pg_database.postgis_db import PostGISService
 
@@ -33,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def list_catalogue_datasets(catalogue_id: str, limit: int = 100) -> list:
+def list_catalogue_datasets(catalogue_id: str, limit: int = 100) -> List:
     """
     Fetch dataset IDs from a European Data Portal catalogue.
     
@@ -177,6 +179,41 @@ def process_dataset(dataset_id: str, language: str) -> Dataset:
     except Exception as e:
         logger.warning(f"Error processing {dataset_id}: {e}")
         return None
+
+def index_datasets_in_postgis(datasets: List[Dataset]) -> bool:
+    """Index datasets in PostGIS database"""
+    logger.info("Indexing datasets in PostGIS")
+    try:
+        postgis_service = PostGISService()
+        postgis_service.connect()
+        postgis_service.initialize_schema()
+        inserted_count = postgis_service.insert_datasets(datasets)
+        postgis_service.disconnect()
+        logger.info(f"Inserted {inserted_count} datasets into PostGIS")
+        return True
+    except Exception as e:
+        logger.error(f"Error indexing in PostGIS: {e}")
+        return False
+    
+def index_datasets_in_qdrant(datasets: List[Dataset]) -> bool:
+    """Index datasets in Qdrant vector store."""
+    logger.info("Indexing datasets in Qdrant...")
+    try:
+        vector_store = QdrantVectorStoreManager()
+        vector_store.initialize()
+        vector_store.add_datasets(datasets)
+        logger.info(f"Added {len(datasets)} datasets to Qdrant")
+        return True
+    except Exception as e:
+        logger.error(f"Error indexing in Qdrant: {e}")
+        return False
+
+def index_datasets(datasets: List[Dataset]) -> bool:
+    """Index the datasets in both the vector database and spatial index"""
+    return (
+        index_datasets_in_postgis(datasets) and 
+        index_datasets_in_qdrant(datasets)
+    )
     
 def harvest_and_index_datasets(catalogue_id: str = CATALOGUE_ID,
                                language: str = LANGUAGE,
@@ -221,35 +258,27 @@ def harvest_and_index_datasets(catalogue_id: str = CATALOGUE_ID,
     
     logger.info(f"Successfully processed {len(processed_datasets)} datasets")
     
-    # Index in PostGIS
-    logger.info("Indexing datasets in PostGIS...")
-    try:
-        postgis_service = PostGISService()
-        postgis_service.connect()
-        postgis_service.initialize_schema()
-        inserted_count = postgis_service.insert_datasets(processed_datasets)
-        postgis_service.disconnect()
-        logger.info(f"Inserted {inserted_count} datasets into PostGIS")
-    except Exception as e:
-        logger.error(f"Error indexing in PostGIS: {e}")
-        return False
-    
-    # Index in Qdrant
-    logger.info("Indexing datasets in Qdrant...")
-    try:
-        vector_store = QdrantVectorStoreManager()
-        vector_store.initialize()
-        vector_store.add_datasets(processed_datasets)
-        logger.info(f"Added {len(processed_datasets)} datasets to Qdrant")
-    except Exception as e:
-        logger.error(f"Error indexing in Qdrant: {e}")
-        return False
-    
-    logger.info("Harvesting and indexing datasets completed successfully!")
-    return True
+    return index_datasets(processed_datasets)
 
+def harvest_from_local_file(file_path: str='data/gdi_de_catalog.rdf') -> bool:
+    """Harvest datasets from a local RDF file and index them"""
+
+    try:
+        parser = RDFParser()
+        datasets = parser.parse_file(file_path)
+
+        logger.info(f"Parsed {len(datasets)} datasets from local file")
+
+        return index_datasets(datasets)
+    except Exception as e:
+        logger.error(f"Error harvesting from local file: {e}")
+        return False
 
 if __name__ == "__main__":
+    local_file_success = harvest_from_local_file()
+    if local_file_success:
+        logger.info("Local harvest succeeded")
+
     harvest_success = harvest_and_index_datasets(
         catalogue_id=CATALOGUE_ID,
         language=LANGUAGE,
@@ -257,6 +286,6 @@ if __name__ == "__main__":
         start_index=START_INDEX
     )
 
-    if not harvest_success:
+    if not (local_file_success or harvest_success):
         logger.error("Harvest failed!")
         exit(1)
