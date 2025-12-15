@@ -13,7 +13,7 @@ from pg_database.postgis_db import PostGISService
 CATALOGUE_ID = "nipp"
 LANGUAGE = "hr"
 LIMIT = 100
-START_INDEX = 5
+START_INDEX = 0
 
 # API endpoints
 EDP_SEARCH_API = "https://data.europa.eu/api/hub/search/datasets"
@@ -226,6 +226,7 @@ def harvest_and_index_datasets(catalogue_id: str = CATALOGUE_ID,
     try:
         postgis_service = PostGISService()
         postgis_service.connect()
+        postgis_service.initialize_schema()
         inserted_count = postgis_service.insert_datasets(processed_datasets)
         postgis_service.disconnect()
         logger.info(f"Inserted {inserted_count} datasets into PostGIS")
