@@ -75,14 +75,8 @@ class PostGISService:
             self.logger.error(f"Failed to initialized database schema: {e}")
             raise
 
-    def insert_dataset(self, dataset:Dataset) -> bool:
-        """Insert a single dataset into the database"""
-
-        if not self.connection:
-            raise ValueError("No database connection established")
-        
-        if not dataset.spatial_extent_wkt:
-            return False
+    def _insert_dataset(self, dataset:Dataset) -> bool:
+        """Insert a single dataset into the database. Returns True if insert succeeded, else False"""
 
         try:
             with self.connection.cursor() as cur:
@@ -102,43 +96,28 @@ class PostGISService:
         
     def insert_datasets(self, datasets: List[Dataset]) -> int:
         """
-        Instert multiple datasets into the database.
+        Inserts multiple datasets into the database.
 
-        Returns the number of datasets inserted
+        Returns the number of datasets inserted.
         """
         if not self.connection:
             raise ValueError("No database connection established")
         
         inserted_count = 0
+        skipped_count = 0
 
-        try:
-            with self.connection.cursor() as cur:
-                for dataset in datasets:
-                    # skip datasets without spatial extent
-                    if not dataset.spatial_extent_wkt:
-                        self.logger.debug(f"Skipping dataset {dataset.dataset_id}: no spatial extent")
-                        continue
+        for dataset in datasets:
+            if not dataset.spatial_extent_wkt:
+                self.logger.debug(f"Skipping {dataset.dataset_id}: no spatial extent")
+                skipped_count += 1
+                continue
 
-                    try:
-                        cur.execute("""
-                        INSERT INTO dcat_metadata (dataset_id, title, geom)
-                        VALUES (%s, %s, ST_GeomFromText(%s, 4326))
-                        ON CONFLICT (dataset_id) DO NOTHING;
-                        """, (dataset.dataset_id, dataset.primary_title, dataset.spatial_extent_wkt))
+            if self._insert_dataset(dataset):
+                inserted_count += 1
 
-                        inserted_count += 1
-
-                    except Exception as e:
-                        self.logger.warning(f"Failed to insert dataset {dataset.dataset_id}: {e}")
-                        continue
-                # commit all insertions at once
-                self.connection.commit()
-                self.logger.info(f"Successfully inserted {inserted_count}/{len(datasets)} datasets")
-
-        except Exception as e:
-            self.connection.rollback()
-            self.logger.error(f"Error duing batch insert: {e}")
-            raise
+        self.logger.info(
+            f"Inserted {inserted_count}/{len(datasets)} datasets. Skipped {skipped_count} datasets"
+        )
 
         return inserted_count
 
