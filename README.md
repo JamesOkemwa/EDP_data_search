@@ -52,7 +52,7 @@ uv sync
 - Locks versions in `uv.lock` for reproducibility
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the project root:
+Create a `.env` file in the project root: Apart from the OPENAI_API_KEY, the default env values can be found in the env.sample file.
 
 ```env
 # OpenAI Configuration
