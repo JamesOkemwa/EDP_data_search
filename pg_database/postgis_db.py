@@ -114,6 +114,8 @@ class PostGISService:
 
             if self._insert_dataset(dataset):
                 inserted_count += 1
+            else:
+                skipped_count += 1
 
         self.logger.info(
             f"Inserted {inserted_count}/{len(datasets)} datasets. Skipped {skipped_count} datasets"
