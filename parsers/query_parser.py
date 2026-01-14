@@ -28,6 +28,7 @@ class QueryIntent(BaseModel):
     locations: List[str] = Field(default_factory=list, description="List of place names or locations for geocoding")
     themes: List[str] = Field(default_factory=list, description="Main themes from the query")
     publishers: List[str] = Field(default_factory=list, description="List of publishers or data sources mentioned")
+    language: str = Field(description="Language used in the query")
 
     @validator('raw_theme')
     def validate_raw_theme(cls, v):
@@ -55,6 +56,7 @@ class QueryIntent(BaseModel):
             "locations": self.locations,
             "themes": self.themes,
             "publishers": self.publishers,
+            "language": self.language,
             "has_location": self.has_location,
             "core_search_terms": self.core_search_terms
         }
@@ -70,8 +72,9 @@ class QueryParser:
     Your task is to extract from this dataset search query:
         1. raw_theme: Raw theme or core search phrase (exact user wording for the main topic)
         2. locations: Place names that will be used for geocoding. Include cities, countries, regions - anything that can be geocoded.
-        3. themes: Main themes, keywords and topics relevant to the query. Include data types (traffic, weather, population) and domains (transportation, environment).
+        3. themes: Main themes, keywords and topics relevant to the query. Includes themes such as (traffic, weather, population, transportation, environment).
         4. publishers: Organizations, agencies, or data publishers mentioned (e.g., "city of Berlin", "European Space Agency")
+        5. language: Language used in the user query (e.g English)
 
     Format your response as a JSON that matches this pydantic schema:
     {format_instructions}
