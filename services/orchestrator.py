@@ -74,6 +74,7 @@ class RAGOrchestrator:
             response = self.response_generator.generate_response(
                 original_query=original_query,
                 search_results=[],
+                query_language=parsed_query.language
             )
             return response
         
@@ -87,6 +88,7 @@ class RAGOrchestrator:
             response = self.response_generator.generate_response(
                 original_query=original_query,
                 search_results=[],
+                query_language=parsed_query.language
             )
             return response
         
@@ -103,6 +105,7 @@ class RAGOrchestrator:
         response = self.response_generator.generate_response(
             original_query=original_query,
             search_results=search_results,
+            query_language=parsed_query.language
         )
 
         return response
@@ -122,6 +125,7 @@ class RAGOrchestrator:
         response = self.response_generator.generate_response(
             original_query=original_query,
             search_results=search_results,
+            query_language=parsed_query.language
         )
 
         return response
