@@ -22,19 +22,19 @@ class ResponseGenerator:
              - Directly address the user's query.
              - Recommend the most relevant datasets.
              - Mention location context if applicable.
-             - Address the user in the language used in the user query.
              - Be helpful and specific."""),
 
              ("human", """User Query: {original_query}
+              
               Retrieved Datasets: {datasets_info}
               
-              Please provide a helpful response that addresses the user's query and recommends relevant datasets.""")
+              Always respond in {query_language} language""")
         ])
 
         # create the chain
         self.chain = self.prompt | self.llm | StrOutputParser()
 
-    def generate_response(self, original_query: str, search_results: List[SearchResult]) -> Dict[str, Any]:
+    def generate_response(self, original_query: str, query_language: str, search_results: List[SearchResult]) -> Dict[str, Any]:
         """
         Generate a natural language response based on search results.
 
@@ -54,6 +54,7 @@ class ResponseGenerator:
             response_text = self.chain.invoke({
                 "original_query": original_query,
                 "datasets_info": datasets_info,
+                "query_language": query_language
             })
 
             # format source datasets for the API response
