@@ -3,15 +3,16 @@ import requests
 import folium
 from streamlit_folium import st_folium
 from shapely import wkt
+from datetime import datetime
 
 API_URL = 'http://localhost:8000/search'
 
-st.title("Spatial Data Search")
+st.title("EDP AI Search")
 
 def render_datasets(datasets):
     """Render dataset information in expanders."""
     if datasets:
-        st.subheader("📊 Found Datasets")
+        st.subheader("📊 Relevant Datasets")
         for i, dataset in enumerate(datasets, 1):
             if dataset.get('metadata'):
                 metadata = dataset["metadata"]
@@ -53,7 +54,7 @@ def render_datasets(datasets):
                         except Exception as e:
                             st.warning(f"Could not parse the spatial extent: {e}")
                              
-                    st_folium(m, width=725, returned_objects=[], key=f"map-{i}-{dataset.get('dataset_id', str(i))}")
+                    st_folium(m, width=725, returned_objects=[], key=f"map-{i}-{dataset.get('dataset_id', str(i))}-{datetime.now().isoformat()}")
     else:
         st.info("No datasets found for this query")
 
