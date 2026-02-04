@@ -7,7 +7,8 @@ from datetime import datetime
 
 API_URL = 'http://localhost:8000/search'
 
-st.title("EDP AI Search")
+st.title("SDI-Search")
+st.markdown('''Searching :blue-background[Spatial Data Infrastructures (SDIs)] using natural language.''')
 
 def render_datasets(datasets):
     """Render dataset information in expanders."""
