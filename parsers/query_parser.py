@@ -26,7 +26,7 @@ class QueryIntent(BaseModel):
 
     raw_theme: str = Field(description="Core search topic/phrase verbatim from the query")
     locations: List[str] = Field(default_factory=list, description="List of place names or locations for geocoding")
-    themes: List[str] = Field(default_factory=list, description="Main themes from the query")
+    themes: List[str] = Field(default_factory=list, description="Main themes from the query that have not explicitly been stated")
     publishers: List[str] = Field(default_factory=list, description="List of publishers or data sources mentioned")
     language: str = Field(description="Language used in the query")
 
@@ -72,7 +72,7 @@ class QueryParser:
     Your task is to extract from this dataset search query:
         1. raw_theme: Raw theme or core search phrase (exact user wording for the main topic)
         2. locations: Place names that will be used for geocoding. Include cities, countries, regions - anything that can be geocoded.
-        3. themes: Main themes, keywords and topics relevant to the query. Includes themes such as (traffic, weather, population, transportation, environment).
+        3. themes: Main themes, keywords or topics that have not explicitly been stated. They should be in the same language as the raw_theme. Includes themes/keywords/topics such as (traffic, weather, population, transportation, environment).
         4. publishers: Organizations, agencies, or data publishers mentioned (e.g., "city of Berlin", "European Space Agency")
         5. language: Language used in the user query (e.g English)
 
