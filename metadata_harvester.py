@@ -12,10 +12,20 @@ from vector_stores.qdrant_store import QdrantVectorStoreManager
 from pg_database.postgis_db import PostGISService
 
 # Configuration
-CATALOGUE_ID = "nipp"
-LANGUAGE = "hr"
-LIMIT = 100
-START_INDEX = 0
+CATALOGUES = [
+    {
+        "id": "nipp",
+        "language": "hr",
+        "limit": 100,
+        "start_index": 0
+    },
+    {
+        "id": "dados-gov-pt",
+        "language": "pt",
+        "limit": 100,
+        "start_index": 0
+    }
+]
 
 # API endpoints
 EDP_SEARCH_API = "https://data.europa.eu/api/hub/search/datasets"
@@ -233,10 +243,10 @@ def index_datasets(datasets: List[Dataset]) -> bool:
         index_datasets_in_qdrant(datasets)
     )
     
-def harvest_and_index_datasets(catalogue_id: str = CATALOGUE_ID,
-                               language: str = LANGUAGE,
-                               limit: int = LIMIT,
-                               start_index: int = START_INDEX) -> bool:
+def harvest_and_index_datasets(catalogue_id: str,
+                               language: str,
+                               limit: int,
+                               start_index: int) -> bool:
     """
     Main harvest function: fetch datasets, process them, and index in databases.
     
@@ -297,13 +307,24 @@ if __name__ == "__main__":
     if local_file_success:
         logger.info("Local harvest succeeded")
 
-    harvest_success = harvest_and_index_datasets(
-        catalogue_id=CATALOGUE_ID,
-        language=LANGUAGE,
-        limit=LIMIT,
-        start_index=START_INDEX
-    )
+    # track if harvesting metadata from all catalogues has been successful
+    all_catalogues_success = True
+    for catalogue in CATALOGUES: 
+        harvest_success = harvest_and_index_datasets(
+            catalogue_id=catalogue["id"],
+            language=catalogue["language"],
+            limit=catalogue["limit"],
+            start_index=catalogue["start_index"]
+        )
+        
+        if not harvest_success:
+            logger.error(f"Harvesting metadata from catalogue {catalogue["id"]} failed")
+            all_catalogues_success = False
+        else:
+            logger.info(f"Harvest succeeded for catalogue {catalogue["id"]}")
 
-    if not (local_file_success or harvest_success):
-        logger.error("Harvest failed!")
+    if not (local_file_success or all_catalogues_success):
+        logger.error("Harvesting metadata from the local file or EDP failed!")
         exit(1)
+    
+    logger.info("Harvest and indexing completed successfully!")
