@@ -12,10 +12,20 @@ from vector_stores.qdrant_store import QdrantVectorStoreManager
 from pg_database.postgis_db import PostGISService
 
 # Configuration
-CATALOGUE_ID = "nipp"
-LANGUAGE = "hr"
-LIMIT = 100
-START_INDEX = 0
+CATALOGUES = [
+    {
+        "id": "nipp",
+        "language": "hr",
+        "limit": 100,
+        "start_index": 0
+    },
+    {
+        "id": "dados-gov-pt",
+        "language": "pt",
+        "limit": 100,
+        "start_index": 0
+    }
+]
 
 # API endpoints
 EDP_SEARCH_API = "https://data.europa.eu/api/hub/search/datasets"
