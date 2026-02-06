@@ -88,6 +88,28 @@ def get_localized_value(graph: Graph, subject: URIRef,
     
     return "N/A"
 
+def get_dataset_keywords(graph: Graph, subject: URIRef, language: str) -> List[str]:
+    """
+    Extract keywords from the RDF Graph.
+    
+    Attempts to find keywords in the specified language. Falls back to any available keywords if the target language is not found.
+    """
+    # find keywords in the target language
+    keywords = [
+        str(kw) for kw in graph.objects(subject, DCAT.keyword)
+        if isinstance(kw, Literal) and kw.language == language
+    ]
+    
+    # fallback to any available keyword regardless of language
+    if not keywords:
+        keywords = [
+            str(kw) for kw in graph.objects(subject, DCAT.keyword)
+            if isinstance(kw, Literal)
+        ]
+        
+    return keywords or ["N/A"]
+    
+
 def process_dataset(dataset_id: str, language: str) -> Dataset:
     """
     Process a single dataset: fetch metadata, parse it, and create Dataset object.
@@ -126,11 +148,7 @@ def process_dataset(dataset_id: str, language: str) -> Dataset:
         description = get_localized_value(graph, dataset_uri, DCT.description, language)
         
         # Extract keywords
-        keywords = [
-            str(kw) for kw in graph.objects(dataset_uri, DCAT.keyword)
-            if isinstance(kw, Literal) and kw.language == language
-        ]
-        keywords = keywords or ["N/A"]
+        keywords = get_dataset_keywords(graph, dataset_uri, language)
         
         # Extract spatial extent
         spatial_extent = []
