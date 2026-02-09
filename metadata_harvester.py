@@ -19,12 +19,12 @@ CATALOGUES = [
         "limit": 100,
         "start_index": 0
     },
-    {
-        "id": "dados-gov-pt",
-        "language": "pt",
-        "limit": 100,
-        "start_index": 0
-    }
+    # {
+    #     "id": "dados-gov-pt",
+    #     "language": "pt",
+    #     "limit": 100,
+    #     "start_index": 0
+    # }
 ]
 
 # API endpoints
