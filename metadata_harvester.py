@@ -303,9 +303,6 @@ def harvest_from_local_file(file_path: str='data/gdi_de_catalog.rdf') -> bool:
         return False
 
 if __name__ == "__main__":
-    local_file_success = harvest_from_local_file()
-    if local_file_success:
-        logger.info("Local harvest succeeded")
 
     # track if harvesting metadata from all catalogues has been successful
     all_catalogues_success = True
@@ -323,8 +320,8 @@ if __name__ == "__main__":
         else:
             logger.info(f"Harvest succeeded for catalogue {catalogue["id"]}")
 
-    if not (local_file_success or all_catalogues_success):
-        logger.error("Harvesting metadata from the local file or EDP failed!")
+    if not all_catalogues_success:
+        logger.error("Harvesting all metadata from the EDP failed!")
         exit(1)
     
     logger.info("Harvest and indexing completed successfully!")
