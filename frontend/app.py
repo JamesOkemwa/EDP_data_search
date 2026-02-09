@@ -1,11 +1,15 @@
+import os
 import streamlit as st
 import requests
 import folium
 from streamlit_folium import st_folium
 from shapely import wkt
 from datetime import datetime
+from dotenv import load_dotenv
 
-API_URL = 'http://localhost:8000/search'
+load_dotenv()
+
+API_URL = os.getenv("BACKEND_API_URL")
 
 st.title("SDI-Search")
 st.markdown('''Searching the :blue-background[European Data Portal (EDP)] using natural language.''')
